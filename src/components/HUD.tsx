@@ -40,6 +40,11 @@ interface HUDProps {
   onToggleRadio: () => void;
   onToggleCamera: () => void;
   onInteract: () => void;
+  playerPos: { x: number; z: number };
+  playerHeading: number;
+  policeCars: { x: number; z: number }[];
+  shops: InteractiveShop[];
+  customWaypoint: { x: number; z: number } | null;
 }
 
 export const HUD: React.FC<HUDProps> = ({
@@ -60,6 +65,11 @@ export const HUD: React.FC<HUDProps> = ({
   onToggleRadio,
   onToggleCamera,
   onInteract,
+  playerPos,
+  playerHeading,
+  policeCars,
+  shops,
+  customWaypoint,
 }) => {
   // Speed calculation
   const rawSpeedKmh = vehicle ? Math.abs(vehicle.speedKmh) : 0;
@@ -88,6 +98,260 @@ export const HUD: React.FC<HUDProps> = ({
     }
   };
 
+  // Dynamic rotating minimap canvas setup
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const cx = width / 2;
+    const cy = height / 2;
+
+    // Clear background
+    ctx.clearRect(0, 0, width, height);
+
+    // Save initial state
+    ctx.save();
+
+    // Create circular clip path for the radar
+    ctx.beginPath();
+    ctx.arc(cx, cy, cx - 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#020617'; // Tech dark navy fill
+    ctx.fill();
+    ctx.strokeStyle = '#38bdf8'; // Sky blue border
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.clip(); // Restrict drawing to radar boundaries
+
+    // Draw techy concentric scanner rings
+    ctx.strokeStyle = 'rgba(56,189,248,0.08)';
+    ctx.lineWidth = 1;
+    [30, 60, 90].forEach(radius => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    // Draw scanning sweep
+    const sweepAngle = (Date.now() / 900) % (Math.PI * 2);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(sweepAngle) * cx, cy + Math.sin(sweepAngle) * cy);
+    ctx.strokeStyle = 'rgba(16,185,129,0.12)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // -------------------------------------------------------------
+    // ROTATING CITY GRID LAYER
+    // -------------------------------------------------------------
+    ctx.save();
+    ctx.translate(cx, cy);
+    // Rotate counter-clockwise by playerHeading so that UP on screen represents player's FORWARD
+    ctx.rotate(-playerHeading);
+
+    const zoom = 1.7; // Map zoom multiplier
+
+    // Draw Waterfront Promenade (ocean blue fill at west boundary)
+    ctx.fillStyle = 'rgba(14,165,233,0.1)';
+    ctx.fillRect((-400 - playerPos.x) * zoom, (-400 - playerPos.z) * zoom, 230 * zoom, 800 * zoom);
+
+    // Main city street grid coordinates
+    const streets = [-137, -77, -17, 43, 103, 157];
+
+    // Draw under-asphalt block roads
+    ctx.strokeStyle = '#1e293b'; // dark slate asphalt
+    ctx.lineWidth = 12 * zoom;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // 1. NS streets
+    streets.forEach(sx => {
+      ctx.beginPath();
+      ctx.moveTo((sx - playerPos.x) * zoom, (-250 - playerPos.z) * zoom);
+      ctx.lineTo((sx - playerPos.x) * zoom, 250 * zoom);
+      ctx.stroke();
+    });
+
+    // 2. EW streets
+    streets.forEach(sz => {
+      ctx.beginPath();
+      ctx.moveTo((-250 - playerPos.x) * zoom, (sz - playerPos.z) * zoom);
+      ctx.lineTo(250 * zoom, (sz - playerPos.z) * zoom);
+      ctx.stroke();
+    });
+
+    // Draw clean inner lane lines
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1.2 * zoom;
+    streets.forEach(sx => {
+      ctx.beginPath();
+      ctx.moveTo((sx - playerPos.x) * zoom, (-250 - playerPos.z) * zoom);
+      ctx.lineTo((sx - playerPos.x) * zoom, 250 * zoom);
+      ctx.stroke();
+    });
+    streets.forEach(sz => {
+      ctx.beginPath();
+      ctx.moveTo((-250 - playerPos.x) * zoom, (sz - playerPos.z) * zoom);
+      ctx.lineTo(250 * zoom, (sz - playerPos.z) * zoom);
+      ctx.stroke();
+    });
+
+    // -------------------------------------------------------------
+    // ACTIVE MISSION ROUTE (Amber navigation line)
+    // -------------------------------------------------------------
+    if (activeMission) {
+      const activeCheckpoint = activeMission.checkpoints[activeMission.currentCheckpointIndex];
+      if (activeCheckpoint) {
+        const cX = (activeCheckpoint.x - playerPos.x) * zoom;
+        const cY = (activeCheckpoint.z - playerPos.z) * zoom;
+
+        // Orange path route trace
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 4 * zoom;
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.moveTo(0, 0); // start at player center
+        ctx.lineTo(cX, cY);
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset shadow
+
+        // Checkpoint target ring blip
+        ctx.fillStyle = '#f59e0b';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cX, cY, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    // -------------------------------------------------------------
+    // CUSTOM WAYPOINT GPS ROUTE (Glow cyan line)
+    // -------------------------------------------------------------
+    if (customWaypoint) {
+      const wX = (customWaypoint.x - playerPos.x) * zoom;
+      const wY = (customWaypoint.z - playerPos.z) * zoom;
+
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 3.5 * zoom;
+      ctx.shadowColor = '#06b6d4';
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(wX, wY);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Draw blue GPS pin blip
+      ctx.fillStyle = '#06b6d4';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(wX, wY, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // -------------------------------------------------------------
+    // INTERACTIVE LANDMARKS/SHOPS MAP BLIPS
+    // -------------------------------------------------------------
+    shops.forEach(sh => {
+      const sX = (sh.position.x - playerPos.x) * zoom;
+      const sY = (sh.position.z - playerPos.z) * zoom;
+
+      let color = '#3b82f6';
+      let symbol = 'D';
+      if (sh.category === 'gas_station') {
+        color = '#0ea5e9'; // gas: sky-blue
+        symbol = '⛽';
+      } else if (sh.category === 'tuning') {
+        color = '#ea580c'; // custom workshop: orange
+        symbol = '🔧';
+      } else if (sh.category === 'dealership') {
+        color = '#8b5cf6'; // car dealer: violet
+        symbol = '🚗';
+      } else if (sh.category === 'diner') {
+        color = '#10b981'; // diner: green
+        symbol = '🍔';
+      }
+
+      ctx.fillStyle = color;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(sX, sY, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Blip Text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '7px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(symbol, sX, sY);
+    });
+
+    // -------------------------------------------------------------
+    // CHASING POLICE DYNAMIC RED-BLUE FLASHING BLIPS
+    // -------------------------------------------------------------
+    if (stats.wantedLevel > 0) {
+      policeCars.forEach((cop, idx) => {
+        const cX = (cop.x - playerPos.x) * zoom;
+        const cY = (cop.z - playerPos.z) * zoom;
+
+        const flashColor = (Date.now() + idx * 220) % 440 < 220 ? '#ef4444' : '#3b82f6';
+        ctx.fillStyle = flashColor;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cX, cY, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
+
+    ctx.restore(); // Restore translations
+    ctx.restore(); // Restore circle clipping
+
+    // -------------------------------------------------------------
+    // PLAYER ARROW CENTER BLIP (Always locked in center!)
+    // -------------------------------------------------------------
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -6.5);
+    ctx.lineTo(5, 5);
+    ctx.lineTo(0, 1.5);
+    ctx.lineTo(-5, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Draw static cardinal points overlay
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 8.5px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('N', cx, 11);
+    ctx.fillText('S', cx, height - 10);
+    ctx.fillText('W', 11, cy);
+    ctx.fillText('E', width - 11, cy);
+
+  }, [playerPos, playerHeading, activeMission, policeCars, shops, customWaypoint, stats.wantedLevel]);
+
   // Gear indicator
   let gear = 'N';
   if (vehicle) {
@@ -97,12 +361,6 @@ export const HUD: React.FC<HUDProps> = ({
       gear = g.toString();
     }
   }
-
-  // Minimap position offset
-  const playerX = vehicle ? vehicle.position.x : 0;
-  const playerZ = vehicle ? vehicle.position.z : 0;
-  const mapNormX = ((playerX + 200) / 400) * 100;
-  const mapNormZ = ((playerZ + 200) / 400) * 100;
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-4 md:p-6 select-none overflow-hidden font-sans">
@@ -235,55 +493,15 @@ export const HUD: React.FC<HUDProps> = ({
         <div className="flex flex-col items-end gap-2 pointer-events-auto">
           <div
             onClick={() => onOpenPause('map')}
-            className="relative w-36 h-36 md:w-44 md:h-44 rounded-full border-2 border-sky-500/40 bg-slate-950/85 backdrop-blur-md shadow-2xl overflow-hidden cursor-pointer hover:border-sky-400 transition-colors"
+            className="relative w-36 h-36 md:w-44 md:h-44 rounded-full border-2 border-sky-500/40 bg-slate-950/85 backdrop-blur-md shadow-2xl overflow-hidden cursor-pointer hover:border-sky-400 transition-colors flex items-center justify-center"
             title="Click to expand Full City Map"
           >
-            {/* Grid overlay */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.15)_0%,transparent_70%)]" />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-full h-[1px] bg-sky-500/20" />
-              <div className="absolute h-full w-[1px] bg-sky-500/20" />
-              <div className="w-24 h-24 rounded-full border border-sky-500/20" />
-            </div>
-
-            {/* Minimap Roads representation */}
-            <div className="absolute inset-0 opacity-40">
-              <div className="absolute left-[30%] top-0 bottom-0 w-1 bg-slate-400" />
-              <div className="absolute left-[50%] top-0 bottom-0 w-1 bg-slate-400" />
-              <div className="absolute left-[70%] top-0 bottom-0 w-1 bg-slate-400" />
-              <div className="absolute top-[30%] left-0 right-0 h-1 bg-slate-400" />
-              <div className="absolute top-[50%] left-0 right-0 h-1 bg-slate-400" />
-              <div className="absolute top-[70%] left-0 right-0 h-1 bg-slate-400" />
-              <div className="absolute left-0 bottom-0 w-16 h-16 rounded-tr-full bg-blue-500/20 border-r border-t border-sky-400/40" />
-            </div>
-
-            {/* Checkpoint marker if mission active */}
-            {activeMission && (
-              <div
-                className="absolute w-3 h-3 bg-amber-400 rounded-full animate-ping shadow-lg -translate-x-1/2 -translate-y-1/2"
-                style={{
-                  left: `${((activeMission.checkpoints[activeMission.currentCheckpointIndex]?.x || 0) + 200) / 4}%`,
-                  top: `${((activeMission.checkpoints[activeMission.currentCheckpointIndex]?.z || 0) + 200) / 4}%`,
-                }}
-              />
-            )}
-
-            {/* Player Blip Center */}
-            <div
-              className="absolute w-3 h-3 bg-sky-400 rounded-full shadow-[0_0_8px_#38bdf8] border-2 border-white -translate-x-1/2 -translate-y-1/2 z-10"
-              style={{
-                left: `${mapNormX}%`,
-                top: `${mapNormZ}%`,
-              }}
+            <canvas
+              ref={canvasRef}
+              width={176}
+              height={176}
+              className="w-full h-full rounded-full"
             />
-
-            {/* Compass Heading */}
-            <div className="absolute top-1.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-sky-300 font-mono tracking-wider">
-              N
-            </div>
-            <div className="absolute bottom-1 right-2 text-[9px] text-slate-400 font-mono">
-              SOLARIA
-            </div>
           </div>
         </div>
       </div>

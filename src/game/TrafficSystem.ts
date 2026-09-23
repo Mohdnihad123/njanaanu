@@ -25,6 +25,7 @@ export interface Pedestrian {
   health: number;
   state: 'walking' | 'scared' | 'fighting' | 'knocked_out';
   lootDropped: boolean;
+  vipType?: 'modiji' | 'pinarayi' | 'messi' | 'rasheed';
 }
 
 export interface MoneyEnvelope {
@@ -55,6 +56,7 @@ export class TrafficSystem {
     this.scene = scene;
     this.spawnTrafficCars(14);
     this.spawnPedestrians(24);
+    this.spawnVIPs();
   }
 
   private spawnTrafficCars(count: number) {
@@ -207,6 +209,255 @@ export class TrafficSystem {
     }
   }
 
+  private spawnVIPs() {
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xfbcfe8, roughness: 0.6 });
+
+    // 1. Modiji
+    {
+      const group = new THREE.Group();
+      // Saffron/Orange Kurta Torso
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.62, 0.26), new THREE.MeshStandardMaterial({ color: 0xea580c }));
+      torso.position.y = 0.9;
+      group.add(torso);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), skinMat);
+      head.position.y = 1.35;
+      group.add(head);
+
+      // White Beard Mesh
+      const beard = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.1), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      beard.position.set(0, 1.25, 0.13);
+      group.add(beard);
+
+      // White hair cap
+      const hair = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.08, 0.19), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      hair.position.set(0, 1.48, 0);
+      group.add(hair);
+
+      // White legs
+      const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      leftLeg.position.set(-0.13, 0.35, 0);
+      group.add(leftLeg);
+
+      const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      rightLeg.position.set(0.13, 0.35, 0);
+      group.add(rightLeg);
+
+      // Orange sleeves / skin arms
+      const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.48, 0.12), skinMat);
+      leftArm.position.set(-0.3, 0.85, 0);
+      group.add(leftArm);
+
+      const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.48, 0.12), skinMat);
+      rightArm.position.set(0.3, 0.85, 0);
+      group.add(rightArm);
+
+      // Position in Central Plaza near Commercial area
+      group.position.set(10, 0.25, -20);
+      this.scene.add(group);
+
+      this.pedestrians.push({
+        id: 'vip_modiji',
+        group,
+        leftLeg,
+        rightLeg,
+        leftArm,
+        rightArm,
+        speed: 1.2, // majestic slow walk
+        direction: 'east',
+        animTimer: 0,
+        health: 100,
+        state: 'walking',
+        lootDropped: false,
+        vipType: 'modiji',
+      });
+    }
+
+    // 2. Pinarayi
+    {
+      const group = new THREE.Group();
+      // White shirt Torso
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.6, 0.25), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      torso.position.y = 0.9;
+      group.add(torso);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), skinMat);
+      head.position.y = 1.35;
+      group.add(head);
+
+      // White hair
+      const hair = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.18), new THREE.MeshStandardMaterial({ color: 0xeeeeee }));
+      hair.position.set(0, 1.48, 0);
+      group.add(hair);
+
+      // Black glasses spectacles bar
+      const glasses = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.03, 0.05), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+      glasses.position.set(0, 1.38, 0.15);
+      group.add(glasses);
+
+      // White legs (representing mundu / dhoti)
+      const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      leftLeg.position.set(-0.13, 0.35, 0);
+      group.add(leftLeg);
+
+      const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      rightLeg.position.set(0.13, 0.35, 0);
+      group.add(rightLeg);
+
+      // Sleeves / skin arms
+      const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.48, 0.12), skinMat);
+      leftArm.position.set(-0.3, 0.85, 0);
+      group.add(leftArm);
+
+      const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.48, 0.12), skinMat);
+      rightArm.position.set(0.3, 0.85, 0);
+      group.add(rightArm);
+
+      // Position near Waterfront Promenade / coastal area
+      group.position.set(-30, 0.25, -20);
+      this.scene.add(group);
+
+      this.pedestrians.push({
+        id: 'vip_pinarayi',
+        group,
+        leftLeg,
+        rightLeg,
+        leftArm,
+        rightArm,
+        speed: 1.3,
+        direction: 'west',
+        animTimer: 1.0,
+        health: 100,
+        state: 'walking',
+        lootDropped: false,
+        vipType: 'pinarayi',
+      });
+    }
+
+    // 3. Messi
+    {
+      const group = new THREE.Group();
+      // Neon Pink kit Torso
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.6, 0.25), new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.5 }));
+      torso.position.y = 0.9;
+      group.add(torso);
+
+      // Back Number 10
+      const numMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const num10 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.28, 0.02), numMat);
+      num10.position.set(0, 0.92, -0.14);
+      group.add(num10);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), skinMat);
+      head.position.y = 1.35;
+      group.add(head);
+
+      // Brown hair and beard
+      const hair = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.18), new THREE.MeshStandardMaterial({ color: 0x5c4033 }));
+      hair.position.set(0, 1.48, 0);
+      group.add(hair);
+
+      const beard = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.06), new THREE.MeshStandardMaterial({ color: 0x5c4033 }));
+      beard.position.set(0, 1.25, 0.14);
+      group.add(beard);
+
+      // Black shorts legs
+      const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), new THREE.MeshStandardMaterial({ color: 0x09090b }));
+      leftLeg.position.set(-0.13, 0.35, 0);
+      group.add(leftLeg);
+
+      const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), new THREE.MeshStandardMaterial({ color: 0x09090b }));
+      rightLeg.position.set(0.13, 0.35, 0);
+      group.add(rightLeg);
+
+      // Pink arms
+      const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.48, 0.12), skinMat);
+      leftArm.position.set(-0.3, 0.85, 0);
+      group.add(leftArm);
+
+      const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.48, 0.12), skinMat);
+      rightArm.position.set(0.3, 0.85, 0);
+      group.add(rightArm);
+
+      // Position near Central Park
+      group.position.set(50, 0.25, 10);
+      this.scene.add(group);
+
+      this.pedestrians.push({
+        id: 'vip_messi',
+        group,
+        leftLeg,
+        rightLeg,
+        leftArm,
+        rightArm,
+        speed: 2.5, // fast jog athletic
+        direction: 'north',
+        animTimer: 2.0,
+        health: 100,
+        state: 'walking',
+        lootDropped: false,
+        vipType: 'messi',
+      });
+    }
+
+    // 4. Rasheed
+    {
+      const group = new THREE.Group();
+      // Green robe Kurta Torso
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.6, 0.25), new THREE.MeshStandardMaterial({ color: 0x15803d }));
+      torso.position.y = 0.9;
+      group.add(torso);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), skinMat);
+      head.position.y = 1.35;
+      group.add(head);
+
+      // White Kufi/Topi cap on top of head
+      const capMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.08, 8), capMat);
+      cap.position.set(0, 1.54, 0);
+      group.add(cap);
+
+      // White legs (pants)
+      const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      leftLeg.position.set(-0.13, 0.35, 0);
+      group.add(leftLeg);
+
+      const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      rightLeg.position.set(0.13, 0.35, 0);
+      group.add(rightLeg);
+
+      // Sleeves
+      const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.48, 0.12), skinMat);
+      leftArm.position.set(-0.3, 0.85, 0);
+      group.add(leftArm);
+
+      const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.48, 0.12), skinMat);
+      rightArm.position.set(0.3, 0.85, 0);
+      group.add(rightArm);
+
+      // Position near docks / industrial docks or workshop
+      group.position.set(-60, 0.25, -20);
+      this.scene.add(group);
+
+      this.pedestrians.push({
+        id: 'vip_rasheed',
+        group,
+        leftLeg,
+        rightLeg,
+        leftArm,
+        rightArm,
+        speed: 1.6,
+        direction: 'south',
+        animTimer: 3.0,
+        health: 100,
+        state: 'walking',
+        lootDropped: false,
+        vipType: 'rasheed',
+      });
+    }
+  }
+
   // -------------------------------------------------------------
   // Spawn Police Interceptor dynamically near the player
   // -------------------------------------------------------------
@@ -295,7 +546,7 @@ export class TrafficSystem {
   // -------------------------------------------------------------
   // Spawn Money envelope loot at knocked out pedestrian
   // -------------------------------------------------------------
-  public spawnMoneyLoot(pos: THREE.Vector3) {
+  public spawnMoneyLoot(pos: THREE.Vector3, amount?: number) {
     const envelopeGroup = new THREE.Group();
 
     // Visual envelope: green box with a smaller white stripe represent dollar bills bundle
@@ -312,7 +563,7 @@ export class TrafficSystem {
 
     this.moneyEnvelopes.push({
       group: envelopeGroup,
-      amount: 50 + Math.floor(Math.random() * 101), // $50 - $150
+      amount: amount !== undefined ? amount : (50 + Math.floor(Math.random() * 101)), // $50 - $150
     });
   }
 
@@ -501,7 +752,13 @@ export class TrafficSystem {
       if (ped.state === 'knocked_out') {
         // Drop money bundle loot once
         if (!ped.lootDropped) {
-          this.spawnMoneyLoot(ped.group.position);
+          let lootAmount = 50 + Math.floor(Math.random() * 101);
+          if (ped.vipType === 'modiji') lootAmount = 1000;
+          else if (ped.vipType === 'pinarayi') lootAmount = 1000;
+          else if (ped.vipType === 'messi') lootAmount = 1500;
+          else if (ped.vipType === 'rasheed') lootAmount = 800;
+
+          this.spawnMoneyLoot(ped.group.position, lootAmount);
           ped.lootDropped = true;
 
           // Lay pedestrian flat on ground
@@ -515,7 +772,18 @@ export class TrafficSystem {
           // Knocking out people increases Wanted Levels!
           if (onWantedChange && wantedLevel < 5) {
             onWantedChange(Math.min(5, wantedLevel + 1));
-            if (onToastMessage) {
+          }
+
+          if (onToastMessage) {
+            if (ped.vipType === 'modiji') {
+              onToastMessage('MODIJI SPEAKS:', '"Mitron! Violence achieves nothing. Let us build a clean, unified world together! Sabka Saath, Sabka Vikas!"');
+            } else if (ped.vipType === 'pinarayi') {
+              onToastMessage('PINARAYI SPEAKS:', '"Lal Salaam comrade! Ensure absolute discipline and road traffic compliance in this region!"');
+            } else if (ped.vipType === 'messi') {
+              onToastMessage('LIONEL MESSI SPEAKS:', '"Qué mirás, bobo? Anda pa allá! We win the match together. Ankara Messi!"');
+            } else if (ped.vipType === 'rasheed') {
+              onToastMessage('RASHEED SPEAKS:', '"Sanam, everything is controlled under our master blueprint! Habibi, keep driving!"');
+            } else {
               onToastMessage('CRIME COMMIT: Assault!', 'Assaulting pedestrians has raised your Wanted Level!');
             }
           }

@@ -872,6 +872,37 @@ export default function App() {
           onToggleRadio={handleToggleRadio}
           onToggleCamera={handleCycleCamera}
           onInteract={handleEnterExitVehicle}
+          playerPos={
+            engineRef.current
+              ? {
+                  x: !engineRef.current.onFoot && engineRef.current.activeVehicle
+                    ? engineRef.current.activeVehicle.position.x
+                    : engineRef.current.character.position.x,
+                  z: !engineRef.current.onFoot && engineRef.current.activeVehicle
+                    ? engineRef.current.activeVehicle.position.z
+                    : engineRef.current.character.position.z,
+                }
+              : { x: 0, z: 0 }
+          }
+          playerHeading={
+            engineRef.current
+              ? engineRef.current.onFoot
+                ? engineRef.current.character.heading
+                : engineRef.current.activeVehicle
+                ? engineRef.current.activeVehicle.heading
+                : 0
+              : 0
+          }
+          policeCars={
+            engineRef.current
+              ? engineRef.current.trafficSystem.policeCars.map((c) => ({
+                  x: c.group.position.x,
+                  z: c.group.position.z,
+                }))
+              : []
+          }
+          shops={engineRef.current ? engineRef.current.missionEngine.shops : []}
+          customWaypoint={customWaypoint}
         />
       )}
 
