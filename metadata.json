@@ -1,0 +1,6 @@
+{
+  "name": "Solaria Metro: 3D Open World Drive & Explore",
+  "description": "An expansive 3D open-world city driving and exploration game with dynamic day/night cycles, changing weather, on-foot character controls, varied vehicles, AI traffic, pedestrians, interactive buildings, and missions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
